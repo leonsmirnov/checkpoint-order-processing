@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # MongoDB Database (same as production)
+  mongodb:
+    image: mongo:8.0
+    container_name: checkpoint_mongodb_dev
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: checkpoint_order_processing
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_dev_data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - checkpoint_network
+
+  # Node.js Development Container with hot reload
+  app-dev:
+    image: node:18-alpine
+    container_name: checkpoint_app_dev
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      MONGODB_URI: mongodb://admin:password123@mongodb:27017/checkpoint_order_processing?authSource=admin
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run dev
+    depends_on:
+      - mongodb
+    networks:
+      - checkpoint_network
+
+volumes:
+  mongodb_dev_data:
+
+networks:
+  checkpoint_network:
+    driver: bridge
